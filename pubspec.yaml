@@ -6,28 +6,12 @@ repository: https://github.com/vkashegde/fincharts
 issue_tracker: https://github.com/vkashegde/fincharts/issues
 
 topics:
-  - flutter
+  - stocks
   - charts
   - finance
   - trading
   - fintech
-  - portfolio
-  - investment
-  - trading
-  - finance
-  - stocks
-  - bonds
-  - commodities
-  - forex
-  - cryptocurrency
-  - economics
-  - politics
-  - news
-  - analysis
-  - research
-  - data
-  - visualization
-  
+
 environment:
   sdk: ^3.10.1
   flutter: ">=3.38.0"
