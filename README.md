@@ -2,9 +2,7 @@
 
 A Flutter-native financial charting engine for fintech, trading, and investment applications.
 
-`fincharts` renders candlestick, OHLC, line, area, and volume charts entirely with `CustomPainter` — no per-candle widgets, no external chart-library dependency, no assumptions about where your data comes from. It's built to be a lightweight, Flutter-native foundation that broker, fintech, and portfolio apps can build on, not a demo.
-
-> **Status: Week 1 (v0.1.0).** This release covers the five chart types below plus the core rendering/viewport/interaction architecture. Indicators (SMA, EMA, RSI, MACD, ...), drawing tools, and real-time data integrations are intentionally **not** part of this release — see [Roadmap](#roadmap).
+`fincharts` renders candlestick, OHLC, line, area, and volume charts entirely with `CustomPainter` — no per-candle widgets, no external chart-library dependency, no assumptions about where your data comes from. It's built to be a lightweight.
 
 ## Features
 
@@ -19,19 +17,6 @@ A Flutter-native financial charting engine for fintech, trading, and investment 
 - **Framework-friendly** — works inside `Column`, `Expanded`, `SizedBox`, `Sliver`, `Dialog`, `BottomSheet`, etc.
 - **No forced state management** — plain `ChangeNotifier`, works with Bloc, Riverpod, Provider, GetX, or `setState`
 
-## Week 1 capabilities
-
-| Capability | Status |
-|---|---|
-| Candlestick / OHLC / Line / Area / Volume charts | ✅ |
-| Pan, pinch-zoom, crosshair, tooltip | ✅ |
-| Price axis, time axis, grid | ✅ |
-| Dark / light theming | ✅ |
-| Controller API | ✅ |
-| Indicators (SMA, EMA, RSI, MACD, Bollinger, ...) | Not yet — future release |
-| Drawing tools, Fibonacci | Not yet — future release |
-| Real-time / WebSocket data | Not yet — the widget supports live data updates; fetching them is your app's job |
-| Multiple independent panes | Not yet — a single volume sub-pane is supported today |
 
 ## Installation
 
@@ -215,14 +200,12 @@ FinancialChart (widget)
        background -> grid -> main ChartRenderer -> volume pane -> crosshair -> price axis -> time axis
 ```
 
-- **`ChartRenderer`** is an interface, not a `switch` — candlestick, OHLC, line, area, and volume are each their own implementation, resolved from `FinancialChartType` via a lookup table. Adding a chart type in a future release means adding a renderer and a map entry, not editing existing ones.
-- **`ChartViewport`** is a fractional-index window (`startIndex`/`endIndex`), not a pixel offset — this keeps pan/zoom math resolution-independent and testable without a widget tree. Pan and zoom themselves are pure functions in `pan_handler.dart`/`zoom_handler.dart`.
-- **`ChartCoordinateSystem`** is the single place price/index/timestamp ↔ pixel conversions happen. No renderer computes a coordinate any other way.
+- `**ChartRenderer**` is an interface, not a `switch` — candlestick, OHLC, line, area, and volume are each their own implementation, resolved from `FinancialChartType` via a lookup table. Adding a chart type in a future release means adding a renderer and a map entry, not editing existing ones.
+- `**ChartViewport**` is a fractional-index window (`startIndex`/`endIndex`), not a pixel offset — this keeps pan/zoom math resolution-independent and testable without a widget tree. Pan and zoom themselves are pure functions in `pan_handler.dart`/`zoom_handler.dart`.
+- `**ChartCoordinateSystem**` is the single place price/index/timestamp ↔ pixel conversions happen. No renderer computes a coordinate any other way.
 - The package has **zero non-Flutter dependencies** and never imports networking, storage, or broker SDKs — it accepts `Candle` data and renders it, full stop.
 
 ## Roadmap
-
-Weekly releases, roughly one to two new chart/indicator capabilities per week:
 
 - **0.1.0** (this release) — candlestick, OHLC, line, area, volume; pan/zoom/crosshair/tooltip; theming; controller
 - **0.2.0+** — SMA, EMA, RSI, MACD, Bollinger Bands, Fibonacci tools, drawing tools, Renko, Heikin Ashi, multi-pane indicators, real-time update ergonomics
