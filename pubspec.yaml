@@ -1,0 +1,21 @@
+name: fincharts
+description: "A Flutter-native financial charting engine for fintech, trading, and investment applications."
+version: 0.1.0
+homepage: https://github.com/fincharts/fincharts
+repository: https://github.com/fincharts/fincharts
+issue_tracker: https://github.com/fincharts/fincharts/issues
+
+environment:
+  sdk: ^3.10.1
+  flutter: ">=3.38.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
