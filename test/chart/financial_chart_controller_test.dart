@@ -100,6 +100,29 @@ void main() {
     );
 
     test(
+      'syncWithChart does not follow latest when followLatestOnUpdate is false',
+      () {
+        final FinancialChartController controller = FinancialChartController();
+        controller.syncWithChart(
+          dataLength: 100,
+          minVisibleCandles: 5,
+          initialVisibleCandles: 60,
+          followLatestOnUpdate: false,
+        );
+        expect(controller.viewport.endIndex, 100);
+
+        controller.syncWithChart(
+          dataLength: 110,
+          minVisibleCandles: 5,
+          followLatestOnUpdate: false,
+        );
+
+        expect(controller.viewport.endIndex, 100);
+        expect(controller.viewport.visibleSpan, closeTo(60, 1e-9));
+      },
+    );
+
+    test(
       'syncWithChart preserves the scrolled-back position when not at the latest candle',
       () {
         final FinancialChartController controller = FinancialChartController();

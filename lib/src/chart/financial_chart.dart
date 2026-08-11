@@ -12,6 +12,7 @@ import '../rendering/financial_chart_painter.dart';
 import '../theme/financial_chart_theme.dart';
 import '../viewport/chart_coordinate_system.dart';
 import '../viewport/chart_viewport.dart';
+import 'candle_series.dart';
 import 'financial_chart_config.dart';
 import 'financial_chart_controller.dart';
 import 'financial_chart_state.dart';
@@ -24,19 +25,33 @@ import 'financial_chart_state.dart';
 /// `CustomPaint`-based chart has), so wrap it in a `SizedBox`, `Expanded`,
 /// or similar when the parent would otherwise offer unbounded space.
 ///
+/// ### Static data
+///
 /// ```dart
 /// FinancialChart(
 ///   data: candles,
 ///   type: FinancialChartType.candlestick,
-///   controller: controller,
-///   config: FinancialChartConfig(
-///     showGrid: true,
-///     enablePan: true,
-///     enableZoom: true,
-///     crosshair: CrosshairConfig(enabled: true),
-///   ),
 /// )
 /// ```
+///
+/// ### Live / streaming data
+///
+/// Prefer a [CandleSeries] so ticks and new bars update without rebuilding
+/// the parent with a new `List` identity on every message:
+///
+/// ```dart
+/// final series = CandleSeries(historical);
+///
+/// FinancialChart(
+///   series: series,
+///   type: FinancialChartType.candlestick,
+/// );
+///
+/// // Later, from a WebSocket / timer:
+/// series.update(formingOrNextBar);
+/// ```
+///
+/// When both [series] and [data] are provided, [series] takes precedence.
 ///
 /// The package accepts market data and knows nothing about where it came
 /// from — no REST/WebSocket/broker/backend concerns live here. See
@@ -44,7 +59,8 @@ import 'financial_chart_state.dart';
 class FinancialChart extends StatefulWidget {
   /// Creates a financial chart.
   const FinancialChart({
-    required this.data,
+    this.data = const <Candle>[],
+    this.series,
     this.type = FinancialChartType.candlestick,
     this.controller,
     this.config = const FinancialChartConfig(),
@@ -54,10 +70,17 @@ class FinancialChart extends StatefulWidget {
     super.key,
   });
 
-  /// The candle series to render, ideally already sorted ascending by
-  /// timestamp. See `normalizeCandleData` for how out-of-order, duplicate,
-  /// or malformed entries are handled.
+  /// The candle series to render when [series] is null, ideally already
+  /// sorted ascending by timestamp. See `normalizeCandleData` for how
+  /// out-of-order, duplicate, or malformed entries are handled.
+  ///
+  /// Replacing this list with a new identity triggers a full normalize.
+  /// For high-frequency live updates, use [series] instead.
   final List<Candle> data;
+
+  /// Optional live candle series. When non-null, the chart listens to it
+  /// and ignores [data].
+  final CandleSeries? series;
 
   /// Which chart type to render.
   final FinancialChartType type;
@@ -73,13 +96,15 @@ class FinancialChart extends StatefulWidget {
   final FinancialChartThemeData? theme;
 
   /// Called with a human-readable description of each correction applied
-  /// while sanitizing [data] (see `normalizeCandleData`), whenever [data]
-  /// changes. Optional — most applications that supply well-formed data
-  /// will never see this called.
+  /// while sanitizing snapshot [data] (see `normalizeCandleData`), whenever
+  /// [data] changes. Also invoked when a [series] is attached if that
+  /// series reported issues from its last [CandleSeries.setData].
+  /// Optional — most applications that supply well-formed data will never
+  /// see this called.
   final ValueChanged<List<String>>? onDataIssues;
 
-  /// Builds the widget shown when [data] is empty. Defaults to a centered
-  /// "No data" message styled from [theme].
+  /// Builds the widget shown when the active data set is empty. Defaults
+  /// to a centered "No data" message styled from [theme].
   final WidgetBuilder? emptyStateBuilder;
 
   @override
@@ -90,6 +115,7 @@ class _FinancialChartState extends State<FinancialChart> {
   late FinancialChartController _controller;
   bool _controllerIsInternal = false;
   List<Candle> _normalizedData = const <Candle>[];
+  int _dataVersion = 0;
   CrosshairPosition? _crosshairPosition;
 
   ChartViewport? _gestureStartViewport;
@@ -99,7 +125,8 @@ class _FinancialChartState extends State<FinancialChart> {
   void initState() {
     super.initState();
     _attachController();
-    _normalizeData();
+    _attachSeries(widget.series);
+    _refreshData(reportIssues: true);
   }
 
   @override
@@ -109,9 +136,15 @@ class _FinancialChartState extends State<FinancialChart> {
       _detachController();
       _attachController();
     }
-    if (!identical(widget.data, oldWidget.data)) {
+    if (widget.series != oldWidget.series) {
+      _detachSeries(oldWidget.series);
+      _attachSeries(widget.series);
       _crosshairPosition = null;
-      _normalizeData();
+      _refreshData(reportIssues: true);
+    } else if (widget.series == null &&
+        !identical(widget.data, oldWidget.data)) {
+      _crosshairPosition = null;
+      _refreshData(reportIssues: true);
     } else {
       _syncController();
     }
@@ -119,6 +152,7 @@ class _FinancialChartState extends State<FinancialChart> {
 
   @override
   void dispose() {
+    _detachSeries(widget.series);
     _detachController();
     super.dispose();
   }
@@ -139,13 +173,49 @@ class _FinancialChartState extends State<FinancialChart> {
     if (_controllerIsInternal) _controller.dispose();
   }
 
+  void _attachSeries(CandleSeries? series) {
+    series?.addListener(_handleSeriesChanged);
+  }
+
+  void _detachSeries(CandleSeries? series) {
+    series?.removeListener(_handleSeriesChanged);
+  }
+
   void _handleControllerChanged() => setState(() {});
 
-  void _normalizeData() {
-    final NormalizedCandleData result = normalizeCandleData(widget.data);
-    _normalizedData = result.candles;
-    if (result.issues.isNotEmpty) {
-      widget.onDataIssues?.call(result.issues);
+  void _handleSeriesChanged() {
+    setState(() {
+      final CrosshairPosition? previous = _crosshairPosition;
+      _refreshData(reportIssues: false);
+      if (previous == null) return;
+      final int index = previous.dataIndex;
+      if (index < 0 || index >= _normalizedData.length) {
+        _crosshairPosition = null;
+      } else {
+        _crosshairPosition = CrosshairPosition(
+          dataIndex: index,
+          candle: _normalizedData[index],
+          localPosition: previous.localPosition,
+        );
+      }
+    });
+  }
+
+  void _refreshData({required bool reportIssues}) {
+    final CandleSeries? series = widget.series;
+    if (series != null) {
+      _normalizedData = series.candles;
+      _dataVersion = series.version;
+      if (reportIssues && series.issues.isNotEmpty) {
+        widget.onDataIssues?.call(series.issues);
+      }
+    } else {
+      final NormalizedCandleData result = normalizeCandleData(widget.data);
+      _normalizedData = result.candles;
+      _dataVersion++;
+      if (reportIssues && result.issues.isNotEmpty) {
+        widget.onDataIssues?.call(result.issues);
+      }
     }
     _syncController();
   }
@@ -155,6 +225,7 @@ class _FinancialChartState extends State<FinancialChart> {
       dataLength: _normalizedData.length,
       minVisibleCandles: widget.config.minVisibleCandles,
       maxVisibleCandles: widget.config.maxVisibleCandles,
+      followLatestOnUpdate: widget.config.followLatestOnUpdate,
     );
   }
 
@@ -203,6 +274,7 @@ class _FinancialChartState extends State<FinancialChart> {
               size: size,
               painter: FinancialChartPainter(
                 data: _normalizedData,
+                dataVersion: _dataVersion,
                 chartType: widget.type,
                 viewport: _controller.viewport,
                 theme: theme,

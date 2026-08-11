@@ -8,11 +8,13 @@
 /// ```
 ///
 /// Week 1 provides five chart types (see [FinancialChartType]) rendered by
-/// [FinancialChart], driven by [Candle] data, configured via
-/// [FinancialChartConfig], styled via [FinancialChartThemeData], and
-/// controlled programmatically via [FinancialChartController].
+/// [FinancialChart], driven by [Candle] data (or a live [CandleSeries]),
+/// configured via [FinancialChartConfig], styled via
+/// [FinancialChartThemeData], and controlled programmatically via
+/// [FinancialChartController].
 library;
 
+export 'src/chart/candle_series.dart' show CandleSeries;
 export 'src/chart/financial_chart.dart' show FinancialChart;
 export 'src/chart/financial_chart_config.dart'
     show CrosshairConfig, FinancialChartConfig;

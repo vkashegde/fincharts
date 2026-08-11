@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `CandleSeries` for live / streaming candle updates (`update`, `updateLast`, `append`, `setData`)
+- `FinancialChart.series` to bind a chart to a `CandleSeries` without rebuilding on every tick
+- `FinancialChartConfig.followLatestOnUpdate` to control auto-scroll when new bars arrive
+- Example app **Realtime feed** page with a simulated tick + new-bar stream
+
 ## 0.1.0
 
 Initial release.

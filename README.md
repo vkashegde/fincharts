@@ -14,6 +14,7 @@ A Flutter-native financial charting engine for fintech, trading, and investment 
 - **A programmatic controller** (`zoomIn`, `zoomOut`, `fitContent`, `scrollToLatest`, `resetViewport`)
 - **Renders only what's visible** — a 100,000-candle data set costs the same per frame as a 200-candle one
 - **Backend- and broker-agnostic** — the package accepts `Candle` data; it has no idea where it came from
+- **Realtime-friendly** — `CandleSeries` for O(1) forming-bar updates and appends, with optional auto-follow of the latest candle
 - **Framework-friendly** — works inside `Column`, `Expanded`, `SizedBox`, `Sliver`, `Dialog`, `BottomSheet`, etc.
 - **No forced state management** — plain `ChangeNotifier`, works with Bloc, Riverpod, Provider, GetX, or `setState`
 
@@ -41,6 +42,24 @@ FinancialChart(
 ```
 
 `FinancialChart` expects bounded layout constraints from its parent (like any `CustomPaint`-based widget) — wrap it in `Expanded`, `SizedBox`, or similar if its parent would otherwise offer unbounded space.
+
+### Live / realtime updates
+
+For streaming ticks and forming bars, use [CandleSeries] instead of rebuilding with a new `List` on every message:
+
+```dart
+final series = CandleSeries(historicalCandles);
+
+FinancialChart(
+  series: series,
+  type: FinancialChartType.candlestick,
+);
+
+// Same timestamp → update the forming bar; newer timestamp → append.
+series.update(incomingBar);
+```
+
+When the viewport is pinned to the right edge, new bars keep the chart following the latest candle (`FinancialChartConfig.followLatestOnUpdate`, default `true`). Pan left to inspect history without being pulled forward.
 
 ### The `Candle` model
 
@@ -207,8 +226,9 @@ FinancialChart (widget)
 
 ## Roadmap
 
-- **0.1.0** (this release) — candlestick, OHLC, line, area, volume; pan/zoom/crosshair/tooltip; theming; controller
-- **0.2.0+** — SMA, EMA, RSI, MACD, Bollinger Bands, Fibonacci tools, drawing tools, Renko, Heikin Ashi, multi-pane indicators, real-time update ergonomics
+- **0.1.0** — candlestick, OHLC, line, area, volume; pan/zoom/crosshair/tooltip; theming; controller
+- **0.2.0** (this direction) — realtime `CandleSeries` update ergonomics; follow-latest on append
+- **Later** — SMA, EMA, RSI, MACD, Bollinger Bands, Fibonacci tools, drawing tools, Renko, Heikin Ashi, multi-pane indicators
 
 Breaking changes will be deliberate, documented in [CHANGELOG.md](CHANGELOG.md), and versioned accordingly.
 

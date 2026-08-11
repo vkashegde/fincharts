@@ -105,6 +105,7 @@ class FinancialChartController extends ChangeNotifier {
     required double minVisibleCandles,
     double? maxVisibleCandles,
     double initialVisibleCandles = 60,
+    bool followLatestOnUpdate = true,
   }) {
     _minVisibleCandles = minVisibleCandles;
     _maxVisibleCandles = maxVisibleCandles;
@@ -131,7 +132,9 @@ class FinancialChartController extends ChangeNotifier {
     }
 
     final bool wasAtLatest =
-        _dataLength > 0 && _viewport!.endIndex >= _dataLength - 0.5;
+        followLatestOnUpdate &&
+        _dataLength > 0 &&
+        _viewport!.endIndex >= _dataLength - 0.5;
     if (wasAtLatest) {
       final double span = _viewport!.visibleSpan;
       _viewport =

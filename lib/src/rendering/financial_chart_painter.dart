@@ -36,11 +36,17 @@ class FinancialChartPainter extends CustomPainter {
     required this.viewport,
     required this.theme,
     required this.config,
+    this.dataVersion = 0,
     this.crosshairPosition,
   });
 
   /// The full (unsliced) candle data set, sorted ascending by timestamp.
   final List<Candle> data;
+
+  /// Revision from [CandleSeries.version] (or a host-managed counter) so
+  /// in-place last-bar updates still trigger a repaint when [data]'s list
+  /// identity is unchanged.
+  final int dataVersion;
 
   /// Which chart type's renderer paints the main series.
   final FinancialChartType chartType;
@@ -175,6 +181,7 @@ class FinancialChartPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant FinancialChartPainter oldDelegate) {
     return !identical(oldDelegate.data, data) ||
+        oldDelegate.dataVersion != dataVersion ||
         oldDelegate.chartType != chartType ||
         oldDelegate.viewport != viewport ||
         oldDelegate.theme != theme ||

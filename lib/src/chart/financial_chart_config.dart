@@ -65,6 +65,7 @@ class FinancialChartConfig {
     this.enablePan = true,
     this.enableZoom = true,
     this.showTooltip = true,
+    this.followLatestOnUpdate = true,
     this.priceField = PriceField.close,
     this.crosshair = const CrosshairConfig(),
     this.priceFormatter = const DefaultPriceFormatter(),
@@ -102,6 +103,12 @@ class FinancialChartConfig {
 
   /// Whether the OHLCV tooltip is shown alongside the crosshair.
   final bool showTooltip;
+
+  /// When `true` (the default), if the viewport was pinned to the most
+  /// recent candle and new bars arrive (via [CandleSeries] or a longer
+  /// [FinancialChart.data] list), the viewport stays locked to the latest
+  /// edge. When `false`, growing data only clamps the existing window.
+  final bool followLatestOnUpdate;
 
   /// Which OHLC field a `line`/`area` chart plots.
   final PriceField priceField;
@@ -141,6 +148,7 @@ class FinancialChartConfig {
     bool? enablePan,
     bool? enableZoom,
     bool? showTooltip,
+    bool? followLatestOnUpdate,
     PriceField? priceField,
     CrosshairConfig? crosshair,
     PriceFormatter? priceFormatter,
@@ -159,6 +167,7 @@ class FinancialChartConfig {
       enablePan: enablePan ?? this.enablePan,
       enableZoom: enableZoom ?? this.enableZoom,
       showTooltip: showTooltip ?? this.showTooltip,
+      followLatestOnUpdate: followLatestOnUpdate ?? this.followLatestOnUpdate,
       priceField: priceField ?? this.priceField,
       crosshair: crosshair ?? this.crosshair,
       priceFormatter: priceFormatter ?? this.priceFormatter,

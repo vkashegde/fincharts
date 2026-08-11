@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'pages/chart_demo_page.dart';
 import 'pages/performance_page.dart';
+import 'pages/realtime_demo_page.dart';
 
 void main() {
   runApp(const FinChartsExampleApp());
@@ -53,6 +54,23 @@ class _HomePage extends StatelessWidget {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const ChartDemoPage(),
+                  ),
+                );
+              },
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.stream_outlined),
+              title: const Text('Realtime feed'),
+              subtitle: const Text(
+                'CandleSeries with simulated ticks and new bars',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const RealtimeDemoPage(),
                   ),
                 );
               },
