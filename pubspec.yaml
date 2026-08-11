@@ -1,6 +1,6 @@
 name: fincharts
 description: "A Flutter-native financial charting engine for fintech, trading, and investment applications."
-version: 0.1.0
+version: 0.2.0
 homepage: https://github.com/vkashegde/fincharts
 repository: https://github.com/vkashegde/fincharts
 issue_tracker: https://github.com/vkashegde/fincharts/issues

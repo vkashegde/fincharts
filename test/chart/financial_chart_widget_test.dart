@@ -12,6 +12,34 @@ Widget _wrap(Widget child, {double width = 400, double height = 300}) {
   );
 }
 
+/// Pumps [child] wrapped to an exact [width]x[height].
+///
+/// `tester.pumpWidget` gives the root widget tight constraints matching
+/// the full test surface (800x600 by default) — an inner `SizedBox`
+/// asking to be *smaller* than a tight parent can't actually shrink, so
+/// tests that depend on precise pixel-to-candle-index mapping must shrink
+/// the surface itself first.
+Future<void> _pumpSizedChart(
+  WidgetTester tester,
+  Widget child, {
+  double width = 400,
+  double height = 300,
+}) async {
+  await tester.binding.setSurfaceSize(Size(width, height));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await tester.pumpWidget(_wrap(child, width: width, height: height));
+}
+
+/// Bumps a candle's close price while keeping OHLC invariants valid, to
+/// simulate a live tick in tests.
+Candle _tick(Candle candle, double delta) {
+  final double close = candle.close + delta;
+  return candle.copyWith(
+    close: close,
+    high: close > candle.high ? close : candle.high,
+  );
+}
+
 void main() {
   final List<Candle> data = buildSampleCandles(count: 80);
 
@@ -254,5 +282,94 @@ void main() {
 
       expect(tester.takeException(), isNull);
     });
+
+    group('live data updates', () {
+      const DefaultPriceFormatter formatter = DefaultPriceFormatter();
+
+      testWidgets(
+        'an active crosshair is not cleared by an unrelated live tick',
+        (WidgetTester tester) async {
+          final SemanticsHandle handle = tester.ensureSemantics();
+
+          await _pumpSizedChart(tester, FinancialChart(data: data));
+
+          // Hover (mouse) a candle in the middle of the series (not the
+          // live tail), so its price is distinguishable from
+          // data.last.close. Unlike a touch long-press, a mouse hover has
+          // no "up" event to release, so it stays active across the
+          // subsequent data update below — matching how a desktop/web user
+          // actually watches a live chart.
+          final TestPointer pointer = TestPointer(1, PointerDeviceKind.mouse);
+          await tester.sendEventToBinding(
+            pointer.hover(const Offset(180, 150)),
+          );
+          await tester.pump();
+          final String hoveredValue = tester
+              .getSemantics(find.byType(FinancialChart))
+              .value;
+
+          // Simulate a live tick: same length, only the last candle changes.
+          final List<Candle> ticked = List<Candle>.of(data);
+          ticked[ticked.length - 1] = _tick(ticked.last, 500);
+          await tester.pumpWidget(_wrap(FinancialChart(data: ticked)));
+          await tester.pump();
+
+          final String valueAfterTick = tester
+              .getSemantics(find.byType(FinancialChart))
+              .value;
+          expect(valueAfterTick, hoveredValue);
+          expect(
+            valueAfterTick,
+            isNot(contains(formatter.format(ticked.last.close))),
+          );
+          handle.dispose();
+        },
+      );
+
+      testWidgets(
+        'hovering the live (last) candle reflects each tick, not a stale snapshot',
+        (WidgetTester tester) async {
+          final SemanticsHandle handle = tester.ensureSemantics();
+
+          await _pumpSizedChart(tester, FinancialChart(data: data));
+
+          final TestPointer pointer = TestPointer(1, PointerDeviceKind.mouse);
+          await tester.sendEventToBinding(
+            pointer.hover(const Offset(330, 150)),
+          );
+          await tester.pump();
+
+          final List<Candle> ticked = List<Candle>.of(data);
+          ticked[ticked.length - 1] = _tick(ticked.last, 500);
+          await tester.pumpWidget(_wrap(FinancialChart(data: ticked)));
+          await tester.pump();
+
+          final String value = tester
+              .getSemantics(find.byType(FinancialChart))
+              .value;
+          expect(value, contains(formatter.format(ticked.last.close)));
+          handle.dispose();
+        },
+      );
+    });
+
+    testWidgets(
+      'showLivePriceLine renders without error for every chart type',
+      (WidgetTester tester) async {
+        for (final FinancialChartType type in FinancialChartType.values) {
+          await tester.pumpWidget(
+            _wrap(
+              FinancialChart(
+                data: data,
+                type: type,
+                config: const FinancialChartConfig(showLivePriceLine: true),
+              ),
+            ),
+          );
+          await tester.pump();
+          expect(tester.takeException(), isNull);
+        }
+      },
+    );
   });
 }

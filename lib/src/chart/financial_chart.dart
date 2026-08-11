@@ -113,8 +113,8 @@ class _FinancialChartState extends State<FinancialChart> {
       _attachController();
     }
     if (!identical(widget.data, oldWidget.data)) {
-      _crosshairPosition = null;
       _normalizeData();
+      _refreshCrosshairAfterDataChange();
     } else {
       _syncController();
     }
@@ -158,6 +158,35 @@ class _FinancialChartState extends State<FinancialChart> {
       dataLength: _normalizedData.length,
       minVisibleCandles: widget.config.minVisibleCandles,
       maxVisibleCandles: widget.config.maxVisibleCandles,
+    );
+  }
+
+  /// Keeps an active crosshair attached to the same data index across a
+  /// `data` update instead of dropping it.
+  ///
+  /// This matters most for live/streaming data: without it, hovering the
+  /// currently-forming (rightmost) candle while it ticks would make the
+  /// crosshair and tooltip vanish on every single update, since a live
+  /// feed necessarily supplies a new `data` list identity on each tick.
+  /// Re-resolving against the freshly normalized list — rather than
+  /// keeping the stale [Candle] snapshot — is what makes the tooltip's
+  /// OHLCV values keep updating live while hovered.
+  void _refreshCrosshairAfterDataChange() {
+    final CrosshairPosition? current = _crosshairPosition;
+    if (current == null) return;
+
+    if (current.dataIndex >= _normalizedData.length) {
+      _crosshairPosition = null;
+      return;
+    }
+
+    final Candle updatedCandle = _normalizedData[current.dataIndex];
+    if (identical(updatedCandle, current.candle)) return;
+
+    _crosshairPosition = CrosshairPosition(
+      dataIndex: current.dataIndex,
+      candle: updatedCandle,
+      localPosition: current.localPosition,
     );
   }
 

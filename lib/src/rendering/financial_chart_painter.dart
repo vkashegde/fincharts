@@ -16,6 +16,7 @@ import 'chart_renderer.dart';
 import 'crosshair_renderer.dart';
 import 'grid_renderer.dart';
 import 'line_renderer.dart';
+import 'live_price_line_renderer.dart';
 import 'ohlc_renderer.dart';
 import 'price_axis_renderer.dart';
 import 'time_axis_renderer.dart';
@@ -23,7 +24,7 @@ import 'volume_renderer.dart';
 
 /// Orchestrates the full rendering pipeline for a single frame:
 /// background → grid → main series → volume pane (if composited) →
-/// crosshair → price axis → time axis.
+/// price axis → time axis → live price line → crosshair.
 ///
 /// The main series renderer is resolved from [FinancialChartType] via a
 /// lookup table rather than a `switch`, so adding a new chart type in a
@@ -71,6 +72,8 @@ class FinancialChartPainter extends CustomPainter {
   static const TimeAxisRenderer _timeAxisRenderer = TimeAxisRenderer();
   static const CrosshairRenderer _crosshairRenderer = CrosshairRenderer();
   static const VolumeRenderer _volumeRenderer = VolumeRenderer();
+  static const LivePriceLineRenderer _livePriceLineRenderer =
+      LivePriceLineRenderer();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -116,6 +119,7 @@ class FinancialChartPainter extends CustomPainter {
       theme: theme,
       config: config,
       crosshairPosition: crosshairPosition,
+      latestCandle: data.last,
     );
 
     _gridRenderer.paint(canvas, context);
@@ -131,9 +135,10 @@ class FinancialChartPainter extends CustomPainter {
       _volumeRenderer.paint(canvas, context.copyWith(plotArea: volumePlotArea));
     }
 
-    _crosshairRenderer.paint(canvas, context);
     _priceAxisRenderer.paint(canvas, context);
     _timeAxisRenderer.paint(canvas, context);
+    _livePriceLineRenderer.paint(canvas, context);
+    _crosshairRenderer.paint(canvas, context);
   }
 
   (double, double) _computeValueRange(List<Candle> visibleCandles) {

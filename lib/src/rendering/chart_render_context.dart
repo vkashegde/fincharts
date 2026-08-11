@@ -25,6 +25,7 @@ class ChartRenderContext {
     required this.theme,
     required this.config,
     this.crosshairPosition,
+    this.latestCandle,
   });
 
   /// Which chart type is being rendered by the main renderer stage. Axis,
@@ -59,6 +60,12 @@ class ChartRenderContext {
   /// The current crosshair/hover position, or null if inactive.
   final CrosshairPosition? crosshairPosition;
 
+  /// The last candle in the full (unsliced) data set, independent of the
+  /// current viewport — used to anchor the live price line so it stays
+  /// visible even while scrolled back into history. Null for an empty
+  /// data set.
+  final Candle? latestCandle;
+
   /// Returns a copy of this context with the given fields replaced. Used
   /// by [FinancialChartPainter] to re-scope the context (e.g. a different
   /// [plotArea]) for a specific pipeline stage without rebuilding
@@ -76,6 +83,7 @@ class ChartRenderContext {
       theme: theme,
       config: config,
       crosshairPosition: crosshairPosition,
+      latestCandle: latestCandle,
     );
   }
 }

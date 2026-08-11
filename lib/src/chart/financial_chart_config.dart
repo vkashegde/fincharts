@@ -62,6 +62,7 @@ class FinancialChartConfig {
     this.showPriceAxis = true,
     this.showTimeAxis = true,
     this.showVolumePane = false,
+    this.showLivePriceLine = false,
     this.enablePan = true,
     this.enableZoom = true,
     this.showTooltip = true,
@@ -93,6 +94,17 @@ class FinancialChartConfig {
   /// effect when [FinancialChart.type] is already
   /// `FinancialChartType.volume`.
   final bool showVolumePane;
+
+  /// Whether to draw a horizontal reference line (and axis label) at the
+  /// latest candle's closing price, colored to match its direction.
+  ///
+  /// This is the chart's visual "this is live" affordance — the dashed
+  /// line + price tag a real-time trading chart shows. It tracks whichever
+  /// candle is currently last in `FinancialChart.data` regardless of the
+  /// current viewport, so it stays visible even while scrolled back into
+  /// history. Has no effect when [FinancialChart.type] is
+  /// `FinancialChartType.volume`, which has no price axis to anchor to.
+  final bool showLivePriceLine;
 
   /// Whether horizontal panning is enabled.
   final bool enablePan;
@@ -138,6 +150,7 @@ class FinancialChartConfig {
     bool? showPriceAxis,
     bool? showTimeAxis,
     bool? showVolumePane,
+    bool? showLivePriceLine,
     bool? enablePan,
     bool? enableZoom,
     bool? showTooltip,
@@ -156,6 +169,7 @@ class FinancialChartConfig {
       showPriceAxis: showPriceAxis ?? this.showPriceAxis,
       showTimeAxis: showTimeAxis ?? this.showTimeAxis,
       showVolumePane: showVolumePane ?? this.showVolumePane,
+      showLivePriceLine: showLivePriceLine ?? this.showLivePriceLine,
       enablePan: enablePan ?? this.enablePan,
       enableZoom: enableZoom ?? this.enableZoom,
       showTooltip: showTooltip ?? this.showTooltip,

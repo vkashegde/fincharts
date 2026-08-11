@@ -2,12 +2,13 @@
 
 A Flutter-native financial charting engine for fintech, trading, and investment applications.
 
-`fincharts` renders candlestick, OHLC, line, area, and volume charts entirely with `CustomPainter` — no per-candle widgets, no external chart-library dependency, no assumptions about where your data comes from. It's built to be a lightweight.
+`fincharts` renders candlestick, OHLC, line, area, and volume charts entirely with `CustomPainter` — no per-candle widgets, no external chart-library dependency, no assumptions about where your data comes from. It's built to be a lightweight, Flutter-native foundation that broker, fintech, and portfolio apps can build on, not a demo.
 
 ## Features
 
 - **Five chart types**: candlestick, OHLC, line, area, volume
 - **Pan and zoom** — touch drag/pinch, and mouse-wheel/trackpad scroll on desktop and web — with focal-point-preserving zoom and clamped bounds
+- **Live data ready** — frequent `data` updates (tick updates, new bars) are handled efficiently, with the viewport and an active crosshair preserved across updates, plus an optional live price line
 - **Crosshair and OHLCV tooltip**, working identically across every chart type
 - **Dynamic price and time axes** with adaptive precision and overlap-free labels
 - **Dark and light themes**, fully composable — no hard-coded colors in any renderer
@@ -113,6 +114,38 @@ FinancialChart(
 )
 ```
 
+## Live data
+
+`fincharts` doesn't fetch or stream data itself — the package accepts `Candle` data and knows nothing about where it came from — but it's built to be fed a `data` list that changes frequently, whether from a `Timer`, a `WebSocket`/`Stream`, or your own state management:
+
+```dart
+FinancialChart(
+  data: candles, // a new List<Candle> each time you receive an update
+  controller: controller,
+  config: FinancialChartConfig(showLivePriceLine: true),
+)
+```
+
+There are two update shapes a live feed produces, and both are handled correctly:
+
+- **A tick on the currently-forming candle** — same `data.length`, only the last candle's OHLCV changed. The viewport doesn't move, and the price axis/live price line update in place.
+- **A new candle appended when a bar closes** — `data.length` grows by one. If the user was scrolled to the latest candle, the viewport shifts to keep the new candle in view; if they'd scrolled back into history, their position is left alone rather than being yanked back to "now".
+
+Either way, **replace `data` with a new `List<Candle>` — don't mutate an existing list in place.** `FinancialChart` diffs by list identity to decide whether to re-normalize, so an in-place mutation won't be picked up:
+
+```dart
+// Good: a new list, so FinancialChart notices the update.
+setState(() => candles = [...candles.sublist(0, candles.length - 1), updatedLastCandle]);
+
+// Bad: mutating the existing list means FinancialChart won't see any change.
+candles[candles.length - 1] = updatedLastCandle;
+setState(() {});
+```
+
+An active crosshair also survives a live update — hovering the ticking candle shows its tooltip updating in real time instead of freezing or disappearing on every tick, since the crosshair re-resolves against the same candle index rather than holding a stale snapshot.
+
+Set `config.showLivePriceLine: true` for the classic "this is live" affordance: a dashed line and price tag at the latest close, colored to match its direction, that stays visible even while scrolled back into history.
+
 ## Controller
 
 ```dart
@@ -214,8 +247,9 @@ FinancialChart (widget)
 
 ## Roadmap
 
-- **0.1.0** (this release) — candlestick, OHLC, line, area, volume; pan/zoom/crosshair/tooltip; theming; controller
-- **0.2.0+** — SMA, EMA, RSI, MACD, Bollinger Bands, Fibonacci tools, drawing tools, Renko, Heikin Ashi, multi-pane indicators, real-time update ergonomics
+- **0.1.0** — candlestick, OHLC, line, area, volume; pan/zoom/crosshair/tooltip; theming; controller
+- **0.2.0** (this release) — mouse-wheel/trackpad zoom; live-data support (efficient streaming updates, viewport/crosshair preserved across ticks, live price line)
+- **0.3.0+** — SMA, EMA, RSI, MACD, Bollinger Bands, Fibonacci tools, drawing tools, Renko, Heikin Ashi, multi-pane indicators
 
 Breaking changes will be deliberate, documented in [CHANGELOG.md](CHANGELOG.md), and versioned accordingly.
 
