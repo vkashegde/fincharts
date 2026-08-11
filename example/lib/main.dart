@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'pages/chart_demo_page.dart';
+import 'pages/live_demo_page.dart';
 import 'pages/performance_page.dart';
 import 'theme/app_colors.dart';
 
@@ -36,7 +37,8 @@ class _HomePage extends StatelessWidget {
 
   static const List<String> _features = <String>[
     'Candlestick · OHLC · Line · Area · Volume',
-    'Pan & pinch-zoom',
+    'Pan & zoom (touch + mouse-wheel)',
+    'Live data',
     'Crosshair & tooltip',
     'Dark / light theming',
   ];
@@ -81,7 +83,7 @@ class _HomePage extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'v0.1.0 · Week 1',
+                      'v0.2.0',
                       style: TextStyle(
                         color: palette.textSecondary,
                         fontSize: 12,
@@ -138,6 +140,18 @@ class _HomePage extends StatelessWidget {
                   'All 5 chart types, theming, pan, zoom, crosshair, tooltip',
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => const ChartDemoPage()),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _NavCard(
+              palette: palette,
+              icon: Icons.podcasts_outlined,
+              iconColor: AppColors.bearish,
+              title: 'Live demo',
+              subtitle:
+                  'Simulated real-time feed, live price line, ticking candle',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const LiveDemoPage()),
               ),
             ),
             const SizedBox(height: 12),

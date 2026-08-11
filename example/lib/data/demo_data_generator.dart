@@ -61,3 +61,39 @@ List<Candle> generateDemoCandles({
   }
   return candles;
 }
+
+/// Produces the next simulated tick for [previous]: a small random-walk
+/// nudge to its close (widening high/low as needed) and a volume bump.
+///
+/// Used by the live demo to mimic a streaming feed updating the
+/// currently-forming candle — this is the "same length, only the last
+/// candle changes" update shape `FinancialChart` is built to handle
+/// efficiently and without disturbing an active crosshair.
+Candle nextLiveTick(Candle previous, math.Random random) {
+  final double changeFraction = (random.nextDouble() - 0.5) * 0.006;
+  double close = previous.close + previous.close * changeFraction;
+  if (close < 1) close = 1;
+  return previous.copyWith(
+    high: close > previous.high ? close : previous.high,
+    low: close < previous.low ? close : previous.low,
+    close: close,
+    volume: previous.volume + random.nextInt(400),
+  );
+}
+
+/// Starts a new simulated candle following [previous], opening at its
+/// close — used by the live demo to mimic a bar closing and the next one
+/// beginning to form. This is the "`data.length` grows by one" update
+/// shape; `FinancialChartController` keeps the viewport pinned to the
+/// latest candle across it when the user was already scrolled there.
+Candle nextLiveCandle(Candle previous, DateTime timestamp) {
+  final double open = previous.close;
+  return Candle(
+    timestamp: timestamp,
+    open: open,
+    high: open,
+    low: open,
+    close: open,
+    volume: 0,
+  );
+}
