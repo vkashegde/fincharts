@@ -10,12 +10,19 @@ import 'package:flutter/widgets.dart';
 /// and `crosshair_handler.dart`, which can be unit-tested without pumping a
 /// widget tree.
 ///
-/// A single `onScale*` family drives both panning (scale ≈ 1) and pinch
-/// zoom (scale ≠ 1), matching how Flutter's own `ScaleGestureDetector`
+/// A single `onScale*` family drives both panning (scale ≈ 1) and touch
+/// pinch zoom (scale ≠ 1), matching how Flutter's own `ScaleGestureDetector`
 /// unifies drag and pinch — using separate pan and scale recognizers would
 /// make them compete for the same pointer. [HitTestBehavior.opaque] claims
 /// pointers within the chart's bounds so a horizontally-panning chart does
 /// not fight a vertically-scrolling ancestor (e.g. inside a `ListView`).
+///
+/// Desktop trackpads and mice don't produce the multi-touch pointer events
+/// `onScale*` relies on — a trackpad "pinch" is delivered to the browser
+/// (and Flutter web) as wheel events, and often inconsistently across
+/// browsers/platforms. [onPointerScroll] handles the mouse-wheel/trackpad
+/// case directly and independently of the scale recognizer, registered via
+/// [PointerSignalResolver] so it plays well with a scrollable ancestor.
 class ChartGestureDetector extends StatelessWidget {
   /// Creates a chart gesture detector.
   const ChartGestureDetector({
@@ -26,6 +33,7 @@ class ChartGestureDetector extends StatelessWidget {
     this.onScaleStart,
     this.onScaleUpdate,
     this.onScaleEnd,
+    this.onPointerScroll,
     this.onHover,
     this.onHoverExit,
     this.onLongPressStart,
@@ -56,6 +64,10 @@ class ChartGestureDetector extends StatelessWidget {
   /// Called when a pan/zoom gesture ends.
   final GestureScaleEndCallback? onScaleEnd;
 
+  /// Called for a mouse-wheel or trackpad scroll signal over the chart —
+  /// the desktop/web equivalent of pinch-to-zoom.
+  final ValueChanged<PointerScrollEvent>? onPointerScroll;
+
   /// Called on mouse hover (desktop/web crosshair).
   final ValueChanged<Offset>? onHover;
 
@@ -85,6 +97,21 @@ class ChartGestureDetector extends StatelessWidget {
       onLongPressEnd: crosshairEnabled ? onLongPressEnd : null,
       child: child,
     );
+
+    if (zoomEnabled && onPointerScroll != null) {
+      result = Listener(
+        onPointerSignal: (PointerSignalEvent event) {
+          if (event is PointerScrollEvent) {
+            GestureBinding.instance.pointerSignalResolver.register(event, (
+              PointerSignalEvent resolved,
+            ) {
+              onPointerScroll!(resolved as PointerScrollEvent);
+            });
+          }
+        },
+        child: result,
+      );
+    }
 
     if (crosshairEnabled) {
       result = MouseRegion(

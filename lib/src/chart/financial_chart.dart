@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
 import '../core/enums/financial_chart_type.dart';
@@ -192,6 +195,8 @@ class _FinancialChartState extends State<FinancialChart> {
             onScaleUpdate: (ScaleUpdateDetails details) =>
                 _handleScaleUpdate(details, size),
             onScaleEnd: (ScaleEndDetails details) => _handleScaleEnd(),
+            onPointerScroll: (PointerScrollEvent event) =>
+                _handlePointerScroll(event, size),
             onHover: (Offset position) => _updateCrosshair(position, size),
             onHoverExit: _clearCrosshair,
             onLongPressStart: (LongPressStartDetails details) =>
@@ -278,6 +283,44 @@ class _FinancialChartState extends State<FinancialChart> {
   void _handleScaleEnd() {
     _gestureStartViewport = null;
     _gestureStartFocalPoint = null;
+  }
+
+  /// Handles mouse-wheel and trackpad scroll signals as zoom.
+  ///
+  /// Desktop trackpads and mice don't produce the multi-touch pointer
+  /// events [_handleScaleUpdate] relies on for pinch — a trackpad "pinch"
+  /// reaches Flutter (and is most reliable cross-browser/cross-platform,
+  /// including Windows Chrome) as a wheel scroll signal instead, so this
+  /// is the primary way desktop/web users zoom the chart.
+  void _handlePointerScroll(PointerScrollEvent event, Size size) {
+    if (!widget.config.enableZoom) return;
+    final Rect plotArea = computeMainPlotArea(
+      size: size,
+      config: widget.config,
+      chartType: widget.type,
+    );
+    if (plotArea.width <= 0) return;
+
+    final ChartViewport current = _controller.viewport;
+    final double candleWidth = plotArea.width / current.visibleSpan;
+    final double focalIndex =
+        current.startIndex +
+        (event.localPosition.dx - plotArea.left) / candleWidth;
+
+    // Scrolling up (negative dy) zooms in; exponential scaling keeps the
+    // feel consistent regardless of a single event's delta magnitude.
+    final double scaleFactor = math.exp(-event.scrollDelta.dy * 0.0015);
+
+    _controller.applyGestureViewport(
+      applyZoom(
+        viewport: current,
+        scaleFactor: scaleFactor,
+        focalIndex: focalIndex,
+        dataLength: _normalizedData.length,
+        minVisibleCandles: widget.config.minVisibleCandles,
+        maxVisibleCandles: widget.config.maxVisibleCandles,
+      ),
+    );
   }
 
   void _updateCrosshair(Offset localPosition, Size size) {

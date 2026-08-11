@@ -7,7 +7,7 @@ A Flutter-native financial charting engine for fintech, trading, and investment 
 ## Features
 
 - **Five chart types**: candlestick, OHLC, line, area, volume
-- **Pan and pinch-zoom**, with focal-point-preserving zoom and clamped bounds
+- **Pan and zoom** — touch drag/pinch, and mouse-wheel/trackpad scroll on desktop and web — with focal-point-preserving zoom and clamped bounds
 - **Crosshair and OHLCV tooltip**, working identically across every chart type
 - **Dynamic price and time axes** with adaptive precision and overlap-free labels
 - **Dark and light themes**, fully composable — no hard-coded colors in any renderer
@@ -131,6 +131,13 @@ controller.resetViewport();
 ```
 
 `FinancialChartController` is a plain `ChangeNotifier` — attach it to a `FinancialChart`, drive it from buttons, keyboard shortcuts, or your own state management, and it stays in sync with the chart's data length automatically.
+
+### Pan & zoom input
+
+`config.enablePan`/`config.enableZoom` gate two independent input paths, both feeding the same viewport math:
+
+- **Touch**: drag to pan, pinch to zoom, via Flutter's own multi-touch scale gesture.
+- **Mouse/trackpad (desktop & web)**: click-drag to pan; mouse-wheel or trackpad scroll to zoom, centered on the pointer. This is the primary zoom path on desktop — a trackpad "pinch" is delivered to the browser as wheel events rather than multi-touch pointer events, and that translation is inconsistent enough across browsers/platforms (notably Windows Chrome) that relying on it alone isn't reliable, so wheel/scroll is handled directly instead.
 
 ## Theming
 

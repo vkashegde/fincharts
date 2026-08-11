@@ -1,4 +1,5 @@
 import 'package:fincharts/fincharts.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -126,6 +127,54 @@ void main() {
 
       expect(controller.viewport.visibleSpan, lessThan(spanBefore));
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+      'mouse-wheel scroll zooms the viewport (desktop/trackpad zoom)',
+      (WidgetTester tester) async {
+        final FinancialChartController controller = FinancialChartController();
+        addTearDown(controller.dispose);
+
+        await tester.pumpWidget(
+          _wrap(FinancialChart(data: data, controller: controller)),
+        );
+        await tester.pump();
+        final double spanBefore = controller.viewport.visibleSpan;
+
+        final TestPointer pointer = TestPointer(1, PointerDeviceKind.mouse);
+        await tester.sendEventToBinding(pointer.hover(const Offset(200, 150)));
+        await tester.sendEventToBinding(pointer.scroll(const Offset(0, -300)));
+        await tester.pump();
+
+        expect(controller.viewport.visibleSpan, lessThan(spanBefore));
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets('mouse-wheel scroll does nothing when enableZoom is false', (
+      WidgetTester tester,
+    ) async {
+      final FinancialChartController controller = FinancialChartController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        _wrap(
+          FinancialChart(
+            data: data,
+            controller: controller,
+            config: const FinancialChartConfig(enableZoom: false),
+          ),
+        ),
+      );
+      await tester.pump();
+      final ChartViewport before = controller.viewport;
+
+      final TestPointer pointer = TestPointer(1, PointerDeviceKind.mouse);
+      await tester.sendEventToBinding(pointer.hover(const Offset(200, 150)));
+      await tester.sendEventToBinding(pointer.scroll(const Offset(0, -300)));
+      await tester.pump();
+
+      expect(controller.viewport, before);
     });
 
     testWidgets('horizontal drag pans the viewport when enablePan is true', (
