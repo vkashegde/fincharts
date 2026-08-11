@@ -4,6 +4,12 @@ A Flutter-native financial charting engine for fintech, trading, and investment 
 
 `fincharts` renders candlestick, OHLC, line, area, and volume charts entirely with `CustomPainter` — no per-candle widgets, no external chart-library dependency, no assumptions about where your data comes from. It's built to be a lightweight, Flutter-native foundation that broker, fintech, and portfolio apps can build on, not a demo.
 
+<p align="center">
+  <img src="doc/screenshots/hero.png" alt="FinCharts candlestick chart with crosshair, live OHLCV tooltip, pan/zoom toolbar, and volume pane" width="820">
+</p>
+
+<p align="center"><sub>The example app's Chart demo page — see <a href="example/">example/</a>.</sub></p>
+
 ## Features
 
 - **Five chart types**: candlestick, OHLC, line, area, volume
@@ -180,6 +186,10 @@ FinancialChart(
   theme: FinancialChartThemeData.dark(), // or .light(), or .fromBrightness(...)
 )
 ```
+
+<p align="center">
+  <img src="doc/screenshots/light_theme.png" alt="The same chart rendered with FinancialChartThemeData.light()" width="820">
+</p>
 
 Every visual value — background, grid, candle/wick colors, volume colors, axis text, crosshair, tooltip, line and area styling — comes from `FinancialChartThemeData`. No renderer hard-codes a color. Build a fully custom theme, or start from `.dark()`/`.light()` and override individual pieces with `copyWith`:
 
